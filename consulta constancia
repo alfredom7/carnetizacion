@@ -1,0 +1,31 @@
+SELECT cedper, nomper, apeper, fecingper, fecleypen,
+        CASE   WHEN constancia.codnom IN ('0301', '2101', '2201') THEN (SELECT descar FROM sno_hcargo WHERE codcar = constancia.codcar 
+        AND codnom = '1101' AND anocur = '2016' AND codperi = '005')
+       WHEN constancia.codnom IN ('0101', '1101', '0601', '1201', '1401') THEN (constancia.paso ||' '|| constancia.grado)
+END AS cargo,
+          (SELECT desded FROM sno_dedicacion WHERE codded = 
+CASE WHEN constancia.codnom IN ('0101') THEN '001' WHEN constancia.codnom IN ('0601') THEN '002' ELSE constancia.codded  END) as dedicacion, 
+          (SELECT destipper FROM sno_tipopersonal WHERE codded = constancia.codded AND codtipper = constancia.codtipper ) as tipper,
+          sum(valsal) as sueldo_integral, sueper as sueldo_base, constancia.numexpper, constancia.fecjubper, fecreingper
+          FROM (
+          SELECT d.cedper, d.apeper, d.nomper,d.fecingper, d.fecreingper, d.fecleypen, e.codcar , e.codded, e.codtipper,a.codemp, a.codnom, a.codperi, 
+          b.codconc, b.titcon as nomcon, a.valsal, a.tipsal, abs(c.acuemp) AS acuemp, TRIM(d.numexpper) as numexpper, d.fecjubper,
+          TRIM(e.codgra) as grado, TRIM(e.codpas) as paso, 
+                abs(c.acupat) AS acupat, b.repacucon, b.repconsunicon, e.sueper ,b.consunicon, 
+                (SELECT moncon FROM sno_hconstantepersonal WHERE b.repconsunicon='1' AND sno_hconstantepersonal.codper like '%20085894%' 
+                AND sno_hconstantepersonal.codemp = b.codemp AND sno_hconstantepersonal.codnom = b.codnom 
+                AND sno_hconstantepersonal.anocur = b.anocur 
+                AND sno_hconstantepersonal.codperi = b.codperi AND sno_hconstantepersonal.codcons = b.consunicon ) AS unidad
+                FROM sno_hsalida a 
+                LEFT JOIN sno_hconcepto b ON a.codemp=b.codemp AND a.codnom=b.codnom AND a.anocur=b.anocur AND a.codperi=b.codperi AND a.codconc=b.codconc 
+                LEFT JOIN sno_hconceptopersonal c ON a.codemp=c.codemp AND a.codnom=c.codnom AND a.anocur=c.anocur AND a.codperi=c.codperi AND a.codconc=c.codconc AND a.codper=c.codper 
+                INNER JOIN sno_personal d ON a.codper = d.codper
+                LEFT JOIN sno_hpersonalnomina e ON e.codper = d.codper AND e.codnom = '1101' AND e.codperi = '005'
+                WHERE a.codemp='0001' AND a.codnom= '1101' AND a.anocur='2016'
+                   AND a.codperi='005' AND a.codper like '20085894%%' AND a.valsal<>0 
+                   AND (a.tipsal='A' OR a.tipsal='V1' OR a.tipsal='W1') 
+                   AND a.codconc not like '%9999999%'
+                 ORDER BY a.codnom, a.codperi, a.tipsal, a.codconc) AS constancia
+                 GROUP BY constancia.codnom, constancia.cedper, constancia.nomper, constancia.apeper,
+                   constancia.fecingper, constancia.fecreingper, constancia.codcar, constancia.codded, constancia.codtipper, sueper, 
+                   fecleypen, constancia.numexpper, constancia.fecjubper, constancia.grado, constancia.paso;
